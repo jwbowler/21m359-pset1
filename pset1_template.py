@@ -26,7 +26,6 @@ class Audio:
         register_terminate_func(self.close)
 
         self.generators = []
-        #self.blah = NoteGenerator(69, 1)
         self.gain = 0.1
 
     def add_generator(self, gen):
@@ -39,13 +38,10 @@ class Audio:
         return self.gain;
 
     def _callback(self, in_data, frame_count, time_info, status):
-#       for gen in self.generators:
-#           (arr, continue_flag) = gen.generate(frame_count);
 
         data = [gen.generate(frame_count) for gen in self.generators]
-
         index = 0
-        output = np.zeros(frame_count)
+        output = np.zeros(frame_count, dtype = np.float32)
 
         for (arr, continue_flag) in data:
             #output += arr
@@ -57,18 +53,18 @@ class Audio:
 
         return (output.tostring(), pyaudio.paContinue)
 
-        if len(data) > 0:
-            return (data[0][0].tostring(), pyaudio.paContinue)
-        else:
-            stuff = np.zeros(frame_count, dtype=np.float32)
-            return (stuff.tostring(), pyaudio.paContinue)
+        #if len(data) > 0:
+        #    return (data[0][0].tostring(), pyaudio.paContinue)
+        #else:
+        #    stuff = np.zeros(frame_count, dtype=np.float32)
+        #    return (stuff.tostring(), pyaudio.paContinue)
 
-        if len(self.generators) > 0:
-            (stuff, flag) = self.generators[0].generate(frame_count)
-        else:
-            stuff = np.zeros(frame_count, dtype=np.float32)
+        #if len(self.generators) > 0:
+        #    (stuff, flag) = self.generators[0].generate(frame_count)
+        #else:
+        #    stuff = np.zeros(frame_count, dtype=np.float32)
 
-        return (stuff.tostring(), pyaudio.paContinue)
+        #return (stuff.tostring(), pyaudio.paContinue)
 
 
     # return the best output index if found. Otherwise, return None
@@ -121,7 +117,7 @@ class NoteGenerator(object):
     def generate(self, frame_count):
         frames = np.arange(self.counter, self.counter + frame_count)
         factor = self.frequency * 2.0 * np.pi / kSamplingRate
-        output = .5 * np.sin(factor * frames, dtype = np.float32)
+        output = .1 * np.sin(factor * frames, dtype = np.float32)
 
         self.counter += frame_count
         continue_flag = self.counter < self.num_frames
