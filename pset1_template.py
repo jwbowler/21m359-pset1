@@ -1,6 +1,7 @@
 # To help you get going, this template has the main structures set up. You need
 # to fill in the code according to Assignment 1.
 
+from __future__ import division
 import pyaudio
 import numpy as np
 
@@ -26,7 +27,7 @@ class Audio:
         register_terminate_func(self.close)
 
         self.generators = []
-        self.gain = 0.1
+        self.gain = 0.5
 
     def add_generator(self, gen):
         self.generators.append(gen);
@@ -42,14 +43,14 @@ class Audio:
         data = [gen.generate(frame_count) for gen in self.generators]
         index = 0
         output = np.zeros(frame_count, dtype = np.float32)
-
         for (arr, continue_flag) in data:
-            output = np.add(output, arr)
-            if not continue_flag:
-                del self.generators[index]
-            else:
-                index += 1
+          output = np.add(output, arr)
+          if not continue_flag:
+            del self.generators[index]
+          else:
+            index += 1
         output = output * self.gain
+
         return (output.tostring(), pyaudio.paContinue)
 
         #if len(data) > 0:
@@ -100,18 +101,20 @@ class Audio:
         self.audio.terminate()
 
 class NoteGenerator(object):
-    def __init__(self, pitch, duration, wave_type = None):
+    def __init__(self, pitch, duration, gain, wave_type = None):
         self.counter = 0
         self.frequency = self.pitch_to_frequency(pitch)
         self.duration = duration
         self.num_frames = self.duration_to_num_frames(duration);
-        print wave_type
+        
+        self.gain = gain
         #wave freq parameters
         #square wave: odd harmonics
         if (wave_type == "square"):
             sq_coeff = [1., 1./3, 1./5, 1./7, 1./9, 1./11, 1./13, 1./15]
             sq_freqs = [1., 3., 5., 7., 9., 11., 13., 1./15] #numbers are relative to the fundemental freq.
             self.waveform = zip(sq_coeff, sq_freqs)
+            self.gain = self.gain * 0.7
 
         #triangle wave: odd harmonics, but subtract every other one.
         #I used less frequencies here because they drop off quickly.
@@ -120,11 +123,12 @@ class NoteGenerator(object):
             tri_freqs = [1., 3., 5., 7., 9., 11.]
             self.waveform = zip(tri_coeff, tri_freqs)
 
-        #sawtooth wave: all harmonics
+        #sawtooth wave: all harmonics1
         elif (wave_type == "sawtooth"):
             saw_coeff = [1., 1./2, 1./3, 1./4, 1./5, 1./6, 1./7, 1./8, 1./9, 1./10, 1./11]
             saw_freqs = [1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11.]
             self.waveform = zip(saw_coeff, saw_freqs)
+            self.gain = self.gain * 0.01 #to compenstate for loudness relative to other waveforms
         else:
             sine_coeff = [1.]
             sine_freqs = [1.]
@@ -137,7 +141,7 @@ class NoteGenerator(object):
         self.env = self.create_envelope()
   
     def pitch_to_frequency(self, pitch):
-        return (2 ** ((pitch - 69) / 12)) * 440
+        return (2. ** ((pitch - 69) / 12)) * 440
 
     def duration_to_num_frames(self, duration):
         return duration * kSamplingRate
@@ -145,10 +149,10 @@ class NoteGenerator(object):
     def generate(self, frame_count):
         frames = np.arange(self.counter, self.counter + frame_count)
         output = np.zeros(frame_count, dtype=np.float32)
-        for freq in self.waveform:
-            output += freq[0] * np.sin(frames * freq[1] * self.frequency * 2.0 * np.pi / kSamplingRate)
-        #factor = self.frequency * 2.0 * np.pi / kSamplingRate
-        #output =  np.sin(factor * frames, dtype = np.float32)
+        #for freq in self.waveform:
+        #    output += freq[0] * self.gain * np.sin(frames * freq[1] * self.frequency * 2.0 * np.pi / kSamplingRate)
+        factor = self.frequency * 2.0 * np.pi / kSamplingRate
+        output =  np.sin(factor * frames, dtype = np.float32)
         output = self.mul_with_envelope(output, frame_count)
 
         self.counter += frame_count
@@ -174,8 +178,8 @@ class NoteGenerator(object):
         #  create the array of timesteps
         env = np.divide(np.arange(self.num_frames), kSamplingRate, dtype = np.float32)
         #  generate values for the envelope
-        for x in np.nditer(env, op_dtypes = ['float32'], op_flags=['readwrite']):
-            x[...]  = 1.0 - (((x - self.a)/self.d) ** (1.0/self.n2))
+        env = 1.0 - (((env - self.a)/self.d) ** (1.0/self.n2))
+
         return env
     
     def mul_with_envelope(self, input, frame_count):
@@ -206,32 +210,52 @@ class MainWidget(BaseWidget) :
         super(MainWidget, self).__init__()
 
         self.audio = Audio()
+        self.key = 60
+        self.tambre = "sine"
 
     def on_key_down(self, keycode, modifiers):
         # Your code here. You can change this whole function as you wish.
         #print 'key-down', keycode, modifiers
 
+        #I chord in C
         if keycode[1] == '1':
-          gen = NoteGenerator(72, 1, "sawtooth")
+          gen = NoteGenerator(self.key, 1, 1., self.tambre)
           self.audio.add_generator(gen)
-
+          gen1 = NoteGenerator(self.key + 4, 1, 1., self.tambre)
+          self.audio.add_generator(gen1)
+          gen2 = NoteGenerator(self.key + 7, 1, 1., self.tambre)
+          self.audio.add_generator(gen2)
+        #IV chord in C
         elif keycode[1] == '2':
-          gen = NoteGenerator(72, 1, "square")
+          gen = NoteGenerator(self.key + 5, 1, 1., self.tambre)
           self.audio.add_generator(gen)
-
+          gen1 = NoteGenerator(self.key + 9, 1, 1., self.tambre)
+          self.audio.add_generator(gen1)
+          gen2 = NoteGenerator(self.key + 12, 1, 1., self.tambre)
+          self.audio.add_generator(gen2)
+        #V chord in C
         elif keycode[1] == '3':
-          gen = NoteGenerator(72, 1, "triangle")
+          gen = NoteGenerator(self.key + 7, 1, 1., self.tambre)
           self.audio.add_generator(gen)
+          gen1 = NoteGenerator(self.key + 11, 1, 1., self.tambre)
+          self.audio.add_generator(gen1)
+          gen2 = NoteGenerator(self.key + 14, 1, 1., self.tambre)
+          self.audio.add_generator(gen2)
 
         elif keycode[1] == '4':
-          gen = NoteGenerator(72, 1)
+          gen = NoteGenerator(72, 1, 1.)
           self.audio.add_generator(gen)
 
         elif keycode[1] == 'up':
-         self.audio.set_gain( self.audio.get_gain() * 1.1 )
+          self.audio.set_gain( self.audio.get_gain() * 1.1 )
 
         elif keycode[1] == 'down':
-         self.audio.set_gain( self.audio.get_gain() / 1.1 )
+          self.audio.set_gain( self.audio.get_gain() / 1.1 )
+
+        elif keycode[1] == 'right':
+          self.key += 1
+        elif keycode[1] == 'left':
+          self.key -= 1
 
     def on_key_up(self, keycode):
        # Your code here. You can change this whole function as you wish.
