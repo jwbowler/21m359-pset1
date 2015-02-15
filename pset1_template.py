@@ -26,7 +26,7 @@ class Audio:
         register_terminate_func(self.close)
 
         self.generators = []
-        self.gain = 0.1
+        self.gain = 0.5
 
     def add_generator(self, gen):
         self.generators.append(gen);
@@ -44,13 +44,12 @@ class Audio:
         output = np.zeros(frame_count, dtype = np.float32)
 
         for (arr, continue_flag) in data:
-            #output += arr
             output = np.add(output, arr)
-            #if not continue_flag:
-            #    del self.generators[index]
-            #else:
-            #    index += 1
-
+            if not continue_flag:
+                del self.generators[index]
+            else:
+                index += 1
+        output = output * self.gain
         return (output.tostring(), pyaudio.paContinue)
 
         #if len(data) > 0:
@@ -106,8 +105,16 @@ class NoteGenerator(object):
     def __init__(self, pitch, duration):
         self.counter = 0
         self.frequency = self.pitch_to_frequency(pitch)
+        self.duration = duration
         self.num_frames = self.duration_to_num_frames(duration);
-
+        
+        #envelope parameters
+        self.a = 0.0    #length of attack (s)
+        self.n1 = 1.0   #rate of increase of signal
+        self.d = self.duration - self.a   #length of decay (s)
+        self.n2 = .1   #rate of decrease of signal
+        self.env = self.create_envelope()
+  
     def pitch_to_frequency(self, pitch):
         return (2 ** ((pitch - 69) / 12)) * 440
 
@@ -118,12 +125,54 @@ class NoteGenerator(object):
         frames = np.arange(self.counter, self.counter + frame_count)
         factor = self.frequency * 2.0 * np.pi / kSamplingRate
         output = .1 * np.sin(factor * frames, dtype = np.float32)
+        output = self.mul_with_envelope(output, frame_count)
 
         self.counter += frame_count
         continue_flag = self.counter < self.num_frames
-        return (output, True);
+        return (output, continue_flag);
+
+    def create_envelope(self):
+    
+        # Here we use the envelope defined in figure 9.2 from lecture
+        #  (at 48:00 in the video)
+
+        # input is a numpy array that contains the frames we'd like to
+        # use the envelope on.
+
+        # if the duration of the note is longer that the duration of 
+        # the delay, we make the frames after the duration of the
+        # delay 0.
+      
+        # Here is the full envelope generator from lecture:
+        #  if (time < a):
+        #       return (time/a)**(1/n1)
+        #  else:
+        #      return 1 - [(time-a)/d]**(1/n2)
+
+        
+        # First, we start with simple envelope with a = 0.
+        #  create the array of timesteps
+        env = np.divide(np.arange(self.num_frames), kSamplingRate, dtype = np.float32)
+        #  generate values for the envelope
+        for x in np.nditer(env, op_dtypes = ['float32'], op_flags=['readwrite']):
+            x[...]  = 1.0 - (((x - self.a)/self.d) ** (1.0/self.n2))
+        return env
+    
+    def mul_with_envelope(self, input, frame_count):
+        # deal with wrap-around
+        if (self.counter + frame_count > self.num_frames):
+          diff = self.counter + frame_count - self.num_frames
+          env = self.env[self.counter:self.counter+diff]
+          env = np.append(env, np.zeros(diff, dtype=np.float32)) #set these values to zero to prevent clipping
+        
+        else: # get the slice of our envelope that we want
+          env = self.env[self.counter:self.counter+frame_count]
+
+        # Multiply the envelope and the input signal to get the output.
+        return env * input
 
 
+        
 
 
 class MainWidget1(BaseWidget) :
