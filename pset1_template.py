@@ -133,6 +133,8 @@ class NoteGenerator(object):
             sine_coeff = [1.]
             sine_freqs = [1.]
             self.waveform = zip(sine_coeff, sine_freqs)
+
+        print self.waveform
         #envelope parameters
         self.a = 0.0    #length of attack (s)
         self.n1 = 1.0   #rate of increase of signal
@@ -149,10 +151,10 @@ class NoteGenerator(object):
     def generate(self, frame_count):
         frames = np.arange(self.counter, self.counter + frame_count)
         output = np.zeros(frame_count, dtype=np.float32)
-        #for freq in self.waveform:
-        #    output += freq[0] * self.gain * np.sin(frames * freq[1] * self.frequency * 2.0 * np.pi / kSamplingRate)
-        factor = self.frequency * 2.0 * np.pi / kSamplingRate
-        output =  np.sin(factor * frames, dtype = np.float32)
+        for freq in self.waveform:
+            output += freq[0] * self.gain * np.sin(frames * freq[1] * self.frequency * 2.0 * np.pi / kSamplingRate)
+        #factor = self.frequency * 2.0 * np.pi / kSamplingRate
+        #output =  np.sin(factor * frames, dtype = np.float32)
         output = self.mul_with_envelope(output, frame_count)
 
         self.counter += frame_count
@@ -211,52 +213,87 @@ class MainWidget(BaseWidget) :
 
         self.audio = Audio()
         self.key = 60
-        self.tambre = "sine"
+        self.tambres = ["sine", "triangle", "square", "sawtooth"]
+        self.tambre_i = 0 
 
     def on_key_down(self, keycode, modifiers):
         # Your code here. You can change this whole function as you wish.
-        #print 'key-down', keycode, modifiers
+        print 'key-down', keycode, modifiers
 
-        #I chord in C
+        ##### FOUR CHORD SONG! #####
+        #I chord
         if keycode[1] == '1':
-          gen = NoteGenerator(self.key, 1, 1., self.tambre)
+          gen = NoteGenerator(self.key, 1, 1., self.tambres[self.tambre_i])
           self.audio.add_generator(gen)
-          gen1 = NoteGenerator(self.key + 4, 1, 1., self.tambre)
+          gen1 = NoteGenerator(self.key + 4, 1, 1., self.tambres[self.tambre_i])
           self.audio.add_generator(gen1)
-          gen2 = NoteGenerator(self.key + 7, 1, 1., self.tambre)
+          gen2 = NoteGenerator(self.key + 7, 1, 1., self.tambres[self.tambre_i])
           self.audio.add_generator(gen2)
-        #IV chord in C
+        #V chord
         elif keycode[1] == '2':
-          gen = NoteGenerator(self.key + 5, 1, 1., self.tambre)
+          gen = NoteGenerator(self.key + 7, 1, 1., self.tambres[self.tambre_i])
           self.audio.add_generator(gen)
-          gen1 = NoteGenerator(self.key + 9, 1, 1., self.tambre)
+          gen1 = NoteGenerator(self.key + 11, 1, 1., self.tambres[self.tambre_i])
           self.audio.add_generator(gen1)
-          gen2 = NoteGenerator(self.key + 12, 1, 1., self.tambre)
+          gen2 = NoteGenerator(self.key + 14, 1, 1., self.tambres[self.tambre_i])
           self.audio.add_generator(gen2)
-        #V chord in C
+        #vi chord
         elif keycode[1] == '3':
-          gen = NoteGenerator(self.key + 7, 1, 1., self.tambre)
+          gen = NoteGenerator(self.key + 9, 1, 1., self.tambres[self.tambre_i])
           self.audio.add_generator(gen)
-          gen1 = NoteGenerator(self.key + 11, 1, 1., self.tambre)
+          gen1 = NoteGenerator(self.key + 12, 1, 1., self.tambres[self.tambre_i])
           self.audio.add_generator(gen1)
-          gen2 = NoteGenerator(self.key + 14, 1, 1., self.tambre)
+          gen2 = NoteGenerator(self.key + 16, 1, 1., self.tambres[self.tambre_i])
           self.audio.add_generator(gen2)
-
+        #IV chord
+        elif keycode[1] == '4':
+          gen = NoteGenerator(self.key + 5, 1, 1., self.tambres[self.tambre_i])
+          self.audio.add_generator(gen)
+          gen1 = NoteGenerator(self.key + 9, 1, 1., self.tambres[self.tambre_i])
+          self.audio.add_generator(gen1)
+          gen2 = NoteGenerator(self.key + 12, 1, 1., self.tambres[self.tambre_i])
+          self.audio.add_generator(gen2)
         elif keycode[1] == '4':
           gen = NoteGenerator(72, 1, 1.)
           self.audio.add_generator(gen)
 
+
+        #### RIGHT HAND PENTATONIC MELODY ####
+        elif keycode[1] == 't':
+          gen = NoteGenerator(self.key + 12, 1, 1., self.tambres[self.tambre_i])
+          self.audio.add_generator(gen)
+        elif keycode[1] == 'y':
+          gen = NoteGenerator(self.key + 14, 1, 1., self.tambres[self.tambre_i])
+          self.audio.add_generator(gen)
+        elif keycode[1] == 'u':
+          gen = NoteGenerator(self.key + 16, 1, 1., self.tambres[self.tambre_i])
+          self.audio.add_generator(gen)
+        elif keycode[1] == 'i':
+          gen = NoteGenerator(self.key + 19, 1, 1., self.tambres[self.tambre_i])
+          self.audio.add_generator(gen)
+        elif keycode[1] == 'o':
+          gen = NoteGenerator(self.key + 21, 1, 1., self.tambres[self.tambre_i])
+          self.audio.add_generator(gen)
+        elif keycode[1] == 'p':
+          gen = NoteGenerator(self.key + 24, 1, 1., self.tambres[self.tambre_i])
+          self.audio.add_generator(gen)
+        
+        #### SET VOLUME ####
         elif keycode[1] == 'up':
           self.audio.set_gain( self.audio.get_gain() * 1.1 )
-
         elif keycode[1] == 'down':
           self.audio.set_gain( self.audio.get_gain() / 1.1 )
 
+        #### SET KEY ####
         elif keycode[1] == 'right':
           self.key += 1
         elif keycode[1] == 'left':
           self.key -= 1
 
+        #### SET TAMBRE ####
+        elif keycode[1] == 'spacebar':
+          self.tambre_i = (self.tambre_i + 1) % len(self.tambres)
+          print self.tambres[self.tambre_i]
     def on_key_up(self, keycode):
        # Your code here. You can change this whole function as you wish.
        #print 'key up', keycode
