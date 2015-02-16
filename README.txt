@@ -6,6 +6,8 @@ John Bowler, Erin Main
 It's called the Owl City Synth because it sounds
 a lot like Owl City for some reason.
 
+Performance: http://youtu.be/EVsA-K9yme4
+
 Key mapping explanation:
 Left hand (harmony)
 - 1: I chord, 2: V chord, 3: vi chord, 4: IV chord
