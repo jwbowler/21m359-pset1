@@ -114,7 +114,7 @@ class NoteGenerator(object):
             sq_coeff = [1., 1./3, 1./5, 1./7, 1./9, 1./11, 1./13, 1./15]
             sq_freqs = [1., 3., 5., 7., 9., 11., 13., 1./15] #numbers are relative to the fundemental freq.
             self.waveform = zip(sq_coeff, sq_freqs)
-            self.gain = self.gain * 0.7
+            self.gain = self.gain * 0.5 #to compenstate for loudness relative to other waveforms
 
         #triangle wave: odd harmonics, but subtract every other one.
         #I used less frequencies here because they drop off quickly.
@@ -122,13 +122,15 @@ class NoteGenerator(object):
             tri_coeff = [1., -1./9, 1./25, -1./49, 1./81, -1./121]
             tri_freqs = [1., 3., 5., 7., 9., 11.]
             self.waveform = zip(tri_coeff, tri_freqs)
+            self.gain = self.gain * .9 #to compenstate for loudness relative to other waveforms
 
         #sawtooth wave: all harmonics1
         elif (wave_type == "sawtooth"):
             saw_coeff = [1., 1./2, 1./3, 1./4, 1./5, 1./6, 1./7, 1./8, 1./9, 1./10, 1./11]
             saw_freqs = [1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11.]
             self.waveform = zip(saw_coeff, saw_freqs)
-            self.gain = self.gain * 0.01 #to compenstate for loudness relative to other waveforms
+            self.gain = self.gain * 0.2 #to compenstate for loudness relative to other waveforms
+        
         else:
             sine_coeff = [1.]
             sine_freqs = [1.]
@@ -153,8 +155,6 @@ class NoteGenerator(object):
         output = np.zeros(frame_count, dtype=np.float32)
         for freq in self.waveform:
             output += freq[0] * self.gain * np.sin(frames * freq[1] * self.frequency * 2.0 * np.pi / kSamplingRate)
-        #factor = self.frequency * 2.0 * np.pi / kSamplingRate
-        #output =  np.sin(factor * frames, dtype = np.float32)
         output = self.mul_with_envelope(output, frame_count)
 
         self.counter += frame_count
@@ -197,10 +197,6 @@ class NoteGenerator(object):
         # Multiply the envelope and the input signal to get the output.
         return env * input
 
-
-        
-
-
 class MainWidget1(BaseWidget) :
     def __init__(self):
         super(MainWidget1, self).__init__()
@@ -213,7 +209,7 @@ class MainWidget(BaseWidget) :
 
         self.audio = Audio()
         self.key = 60
-        self.tambres = ["sine", "triangle", "square", "sawtooth"]
+        self.tambres = ["sine", "square", "triangle", "sawtooth"]
         self.tambre_i = 0 
 
     def on_key_down(self, keycode, modifiers):
