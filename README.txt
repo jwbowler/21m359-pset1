@@ -27,4 +27,13 @@ Modifier keys
 - space bar: changes timbre, cycles between ["sine", "square", "triangle", "sawtooth"]
 - left/right keys: decrease/increase pitch by half steps
 - up/down keys: increase/lower volume
+
+Who did stuff:
+- John created the NoteGenerator class and figured out how to play multiple notes at once. 
+  He also did the conversion from pitch to frequency. Erin did the envelope generation, 
+  harmonics addition, and made the synthesizer part. (He did the first half and Erin did
+  the second half.)
+
+- Special credit to Erin's friend Alwina who was the performer in the video. (There are some
+  minor tweaks between the final version and the version she used, but no major differences.)
  
